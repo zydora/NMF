@@ -27,7 +27,7 @@ n = filter_size;
 %% data & preprocessing
 [TrainImages,TestImages,TrainLabels,TestLabels] = load_dataset('MNIST');
 if training == 1
-    for k = 1:floor(size(TrainImages,2)/batch)
+for k = 15:21
         Input = cell(1,layer);
         Input{1} = TrainImages(:,1+batch*(k-1):batch*(k));
         W = cell(1,layer);
