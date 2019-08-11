@@ -106,9 +106,10 @@ elseif training == 0
     %     end
     %% testing set
     Input{1} = TestImages;
-    tm = [];
+    
     for i = 1:length(WW)
-        temp11 = process_nmf(reshape(Input{1},[size(Input{1},1),H_size(1),batch]),filter_size(1),stride(1),channel(1), Size_input(1:2),batch);
+        tm = [];
+        temp11 = process_nmf(reshape(Input{1},[size(Input{i},1),H_size(i),batch]),filter_size(i),stride(i),channel(i), Size_input(i:i+1),H_size(i)*batch);
         tm = [tm temp11];
         Input{1} = tm;
         
