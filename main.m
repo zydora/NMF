@@ -24,7 +24,8 @@ Size_input = compute_size(28,stride,filter_size);
 %% data & preprocessing
 [TrainImages,TestImages,TrainLabels,TestLabels] = load_dataset('MNIST');
 if training == 1
-    for k = 1:floor(size(TrainImages,2)/batch)
+    %for k = 1:floor(size(TrainImages,2)/batch)
+    for k = 15:-1:12
         Input = cell(1,layer);
         Input{1} = TrainImages(:,1+batch*(k-1):batch*(k));
         W = cell(1,layer);
@@ -85,55 +86,33 @@ elseif training == 0
         H_size(i) = size(H{i},2);
     end
     %% training set
-    %     for i = 1:length(WW)
-    %         temp = pinv(WW{i})*Input{i};
-    %         temp(temp<0) = 0;
-    %         Input{i+1} = temp;
-    %         if i < length(WW)
-    %             IIInput{i+1} = [];
-    %             for k = 1:floor(size(TrainImages,2)/batch)
-    %                  temp1 = process_nmf(Input{i+1}(:,(k-1)*H_size(i)+1:(k)*H_size(i)),filter_size(i+1),stride(i+1),channel(i+1), Size_input(i+1:i+2),batch);
-    %                  IIInput{i+1} = [IIInput{i+1} temp1];
-    %             end
-    %         elseif i == length(WW)
-    %             IIInput{i+1} = Input{i+1};
-    %         end
-    %         Input{i+1} = IIInput{i+1};
-    %     end
-    %     % single
-    %     for i = 1:layer
-    %         Input{i} = single(Input{i});
-    %     end
-    %% testing set
-    Input{1} = TestImages;
-    
+    Input{1} = single(TrainImages);
     for i = 1:length(WW)
-        tm = [];
-        temp11 = process_nmf(reshape(Input{1},[size(Input{i},1),H_size(i),batch]),filter_size(i),stride(i),channel(i), Size_input(i:i+1),H_size(i)*batch);
-        tm = [tm temp11];
-        Input{1} = tm;
-        
+        temp11 = process_nmf(reshape(Input{i},[size(Input{i},1),H_size(i),batch]),filter_size(i),stride(i),channel(i), Size_input(i:i+1),H_size(i)*batch);
+        Input{i} = temp11;
         temp = pinv(WW{i})*Input{i};
         temp(temp<0) = 0;
         Input{i+1} = temp;
-        if i < length(WW)
-            IIInput{i+1} = [];
-            for k = 1:floor(size(TestImages,2)/batch)
-                temp1 = process_nmf(Input{i+1}(:,(k-1)*H_size(i)+1:(k)*H_size(i)),filter_size(i+1),stride(i+1),channel(i+1), Size_input(i+1:i+2),batch);
-                IIInput{i+1} = [IIInput{i+1} temp1];
-            end
-        elseif i == length(WW)
-            IIInput{i+1} = Input{i+1};
-        end
-        Input{i+1} = IIInput{i+1};
     end
-    % single
-    for i = 1:layer
-        Input{i} = single(Input{i});
+    save('nmf_final_train.mat','Input','WW','HH','-v7.3')
+    %% testing set
+    IInput{1} = single(TestImages);
+    
+    for i = 1:length(WW)
+        temp11 = process_nmf(IInput{i},filter_size(i),stride(i),channel(i), Size_input(i:i+1),H_size(i)*batch);
+        IInput{i} = temp11;
+        
+        temp = pinv(WW{i})*IInput{i};
+        temp(temp<0) = 0;
+        IInput{i+1} = temp;
+        
     end
-    save('nmf_final_test.mat','Input','WW','HH','-v7.3')
+    save('nmf_final_test.mat','IInput','WW','HH','-v7.3')
 elseif training==2
     load('nmf_final_train.mat')
+    for i = 1:layer
+        Input{i} = double(Input{i});
+    end
     num = 60000;
     temp_train = Input{layer+1}';
     temp_train = normalize(temp_train,1,'range');% scaling
@@ -141,10 +120,10 @@ elseif training==2
     %% test transfer
     load('nmf_final_test.mat')
     for i = 1:layer
-        Input{i} = double(Input{i});
+        IInput{i} = double(IInput{i});
     end
     
-    temp_test = Input{layer+1}';
+    temp_test = IInput{layer+1}';
     temp_test = normalize(temp_test,1,'range');
     model_test = svmtrain(TestLabels, temp_test,'-s 0 -t 2 -c 1 -g 0.07');
     [predict_label, accuracy, dec_values] = svmpredict(TrainLabels(1:num),temp_train(1:num,:) , model_train);
@@ -155,6 +134,8 @@ elseif training==3
     load('nmf_final_train.mat')
     for i = 1:4
         Input{i} = reshape(Input{i},[],60000);
+        model{i} = svmtrain(TrainLabels, Input{i}','-s 0 -t 2 -c 1 -g 0.07');
+        
     end
     
 end
